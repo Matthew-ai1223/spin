@@ -1,0 +1,67 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Spin the Bottle</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;800&display=swap" rel="stylesheet" />
+    <link rel="stylesheet" href="styles.css" />
+  </head>
+  <body>
+    <main class="app">
+      <header class="app__header">
+        <h1>Spin the Bottle</h1>
+      </header>
+
+      <section class="table" aria-label="Game table">
+        <!-- The circular table surface -->
+        <div class="table__surface">
+          <div class="pointer" aria-hidden="true"></div>
+          <div class="wheel" id="wheel">
+            <div class="wheel__labels" id="wheelLabels"></div>
+          </div>
+          <div class="rim" id="rim" aria-hidden="true"></div>
+          <!-- The bottle sits centered on the table -->
+          <button class="bottle" id="bottle" aria-label="Bottle" aria-live="polite"></button>
+        </div>
+      </section>
+
+      <section class="players" aria-label="Players">
+        <div class="players__add">
+          <input id="playerInput" type="text" maxlength="20" placeholder="Enter name" aria-label="Player name" />
+          <button id="addPlayerBtn" class="btn" aria-label="Add player">Add</button>
+        </div>
+        <div class="players__meta">
+          <small id="playersHint">Add 2–10 names to play.</small>
+        </div>
+        <ul id="playersList" class="players__list" aria-live="polite"></ul>
+      </section>
+
+      <section class="controls" aria-label="Controls">
+        <button id="spinBtn" class="btn btn--primary" aria-label="Spin the bottle (Space/Enter)">Spin</button>
+        <label class="toggle">
+          <input type="checkbox" id="soundToggle" />
+          <span>Sound</span>
+        </label>
+      </section>
+
+      <section class="help" aria-label="Instructions">
+        <p>
+          Press <kbd>Space</kbd> or <kbd>Enter</kbd> to spin. The bottle will spin a
+          random number of rotations and stop at a random angle.
+        </p>
+        <p id="winner" class="winner" aria-live="polite"></p>
+      </section>
+
+      <footer class="app__footer">
+        <small>Have fun and play responsibly.</small>
+      </footer>
+    </main>
+
+    <script src="script.js"></script>
+  </body>
+  </html>
+
+
