@@ -6,8 +6,9 @@
 	const addPlayerBtn = document.getElementById('addPlayerBtn')
 	const playersList = document.getElementById('playersList')
 	const playersHint = document.getElementById('playersHint')
-	const wheel = document.getElementById('wheel')
-	const wheelLabels = document.getElementById('wheelLabels')
+const wheel = document.getElementById('wheel')
+const wheelLabels = document.getElementById('wheelLabels')
+const wheelTicks = document.getElementById('wheelTicks')
 	const winnerEl = document.getElementById('winner')
 	const rim = document.getElementById('rim')
 
@@ -16,6 +17,7 @@
 	let spinAudio
 	let players = []
 	let lastTickIndex = null
+	const POINTER_OFFSET_DEG = 90 // bottle head points right at 0deg; pointer triangle is at top
 
 	function ensureAudio(){
 		if(spinAudio) return spinAudio
@@ -91,10 +93,12 @@
 			const angle = startRotation + (targetRotation - startRotation) * eased
 			bottle.style.transform = `rotate(${angle}deg)`
 
-			// Tick when crossing a player sector
+			// Tick when crossing a player sector (aligned to pointer at top)
 			if(players.length >= 2){
 				const sector = 360 / players.length
-				const idx = Math.floor((((angle % 360) + 360) % 360) / sector)
+				const normalized = (((angle % 360) + 360) % 360)
+				const pointerAligned = (normalized + POINTER_OFFSET_DEG + sector/2) % 360
+				const idx = Math.floor(pointerAligned / sector)
 				if(lastTickIndex === null) lastTickIndex = idx
 				if(idx !== lastTickIndex){
 					ensureAudio().tick()
@@ -125,8 +129,10 @@ function colorPalette(i){
 
 function renderWheel(){
 	if(!wheel || !wheelLabels) return
-	const count = Math.max(players.length, 4)
+	const count = Math.max(players.length, 1)
 	const sector = 360 / count
+	const radiusPx = Math.max(0, (wheel.clientWidth/2) - 18)
+    const labelOffset = -90 // align label centers with visual sector centers
 	let stops = []
 	for(let i=0;i<count;i++){
 		const start = i * sector
@@ -136,14 +142,32 @@ function renderWheel(){
 	wheel.style.background = `conic-gradient(${stops.join(',')})`
 
 	wheelLabels.innerHTML = ''
-	players.forEach((name, i)=>{
-		const mid = i * sector + sector/2
-		const span = document.createElement('div')
-		span.className = 'label'
-		span.textContent = name
-		span.style.transform = `rotate(${mid}deg) translateX(42%) rotate(${-mid}deg)`
-		wheelLabels.appendChild(span)
-	})
+	if(wheelTicks){
+		wheelTicks.innerHTML = ''
+		for(let i=0;i<count;i++){
+			const t = document.createElement('div')
+			t.className = 'tick'
+			t.style.transform = `rotate(${i*sector}deg)`
+			wheelTicks.appendChild(t)
+		}
+	}
+players.forEach((name, i)=>{
+    const mid = i * sector + sector/2 + labelOffset
+    const rad = (mid * Math.PI) / 180
+    const cx = wheel.clientWidth / 2
+    const cy = wheel.clientHeight / 2
+    const x = cx + Math.cos(rad) * radiusPx
+    const y = cy + Math.sin(rad) * radiusPx
+    const span = document.createElement('div')
+    span.className = 'label'
+    span.textContent = name
+    span.style.left = `${x}px`
+    span.style.top = `${y}px`
+    span.style.transform = 'translate(-50%, -50%)'
+    span.style.maxWidth = `${Math.max(40, Math.round(wheel.clientWidth*0.22))}px`
+    span.style.textAlign = 'center'
+    wheelLabels.appendChild(span)
+})
 }
 
 function renderRim(bulbs = 24){
@@ -162,7 +186,9 @@ function resolveWinner(finalAngle){
 	if(players.length < 2){ if(winnerEl) winnerEl.textContent = '' ; return }
 	const sector = 360 / players.length
 	const normalized = ((finalAngle % 360) + 360) % 360
-	const index = Math.floor(normalized / sector)
+	// Align bottle head (points right at 0deg) to top pointer and bias to nearest sector
+	const pointerAligned = (normalized + POINTER_OFFSET_DEG + sector/2) % 360
+	const index = Math.floor(pointerAligned / sector)
 	const name = players[index]
 	if(winnerEl) winnerEl.textContent = name ? `Selected: ${name}` : ''
 }
