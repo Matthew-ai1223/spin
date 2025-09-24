@@ -12,6 +12,8 @@ const wheelTicks = document.getElementById('wheelTicks')
 	const winnerEl = document.getElementById('winner')
 	const rim = document.getElementById('rim')
 	const topPickEl = document.getElementById('topPick')
+	const preferToggle = document.getElementById('preferToggle')
+	const preferredPlayerSelect = document.getElementById('preferredPlayerSelect')
 
 	let isSpinning = false
 	let currentRotation = 0
@@ -20,6 +22,8 @@ const wheelTicks = document.getElementById('wheelTicks')
 	let lastTickIndex = null
 	const POINTER_OFFSET_DEG = 90 // bottle head points right at 0deg; pointer triangle is at top
 	let selectionCounts = [] // parallel to players
+	let preferredIndex = -1
+	let biasProbability = 0.8
 
 	function ensureAudio(){
 		if(spinAudio) return spinAudio
@@ -79,7 +83,16 @@ const wheelTicks = document.getElementById('wheelTicks')
 		setSpinning(true)
 
 		const extraTurns = Math.floor(randomBetween(3, 7))
-		const finalAngle = randomBetween(0, 360)
+		let finalAngle
+		if(preferToggle?.checked && preferredIndex >= 0 && preferredIndex < players.length && Math.random() < biasProbability){
+			const sector = 360 / players.length
+			// choose a random position inside the preferred sector
+			const pointerAlignedDesired = preferredIndex * sector + randomBetween(0, sector)
+			// invert pointer alignment mapping used in resolveWinner
+			finalAngle = (pointerAlignedDesired - POINTER_OFFSET_DEG - sector/2 + 360*10) % 360
+		}else{
+			finalAngle = randomBetween(0, 360)
+		}
 		const targetRotation = currentRotation + extraTurns * 360 + finalAngle
 		const durationMs = randomBetween(1400, 2200)
 
@@ -256,6 +269,7 @@ function updateTopPickUI(){
 			playersList.appendChild(li)
 		})
 	updateControls()
+	renderPreferredOptions()
 	renderWheel()
 	updateTopPickUI()
 	}
@@ -274,12 +288,41 @@ function updateTopPickUI(){
 	function removePlayer(index){
 		players.splice(index, 1)
 		selectionCounts.splice(index, 1)
-	renderPlayers()
+		// adjust preferred index if needed
+		if(preferredIndex === index){ preferredIndex = -1 }
+		else if(index < preferredIndex){ preferredIndex = preferredIndex - 1 }
+		renderPlayers()
+	}
+
+	function renderPreferredOptions(){
+		if(!preferredPlayerSelect) return
+		preferredPlayerSelect.innerHTML = ''
+		const none = document.createElement('option')
+		none.value = '-1'
+		none.textContent = '— none —'
+		preferredPlayerSelect.appendChild(none)
+		players.forEach((name, i)=>{
+			const opt = document.createElement('option')
+			opt.value = String(i)
+			opt.textContent = name
+			preferredPlayerSelect.appendChild(opt)
+		})
+		const toSelect = (preferredIndex >=0 && preferredIndex < players.length) ? String(preferredIndex) : '-1'
+		preferredPlayerSelect.value = toSelect
+		updateControls()
+	}
+
+	function syncPreferredFromSelect(){
+		if(!preferredPlayerSelect) return
+		const idx = parseInt(preferredPlayerSelect.value)
+		preferredIndex = Number.isNaN(idx) ? -1 : idx
 	}
 
 	spinBtn.addEventListener('click', spin)
 	bottle.addEventListener('click', spin)
 	addPlayerBtn?.addEventListener('click', addPlayer)
+	preferredPlayerSelect?.addEventListener('change', syncPreferredFromSelect)
+	preferToggle?.addEventListener('change', ()=>{/* no-op; state read during spin */})
 	playerInput?.addEventListener('keydown', (e)=>{
 		if(e.key === 'Enter'){
 			e.preventDefault()
@@ -304,6 +347,24 @@ function updateTopPickUI(){
 // Expose helper to window for easy access
 window.getMostSelectedPlayer = getMostSelectedPlayer
 window.getTopPlayerByPercentage = getTopPlayerByPercentage
+window.setPreferredPlayer = function setPreferredPlayer(player, probability){
+	if(typeof probability === 'number' && probability >= 0 && probability <= 1){ biasProbability = probability }
+	let idx = -1
+	if(typeof player === 'number'){
+		idx = player
+	}else if(typeof player === 'string'){
+		const lower = player.trim().toLowerCase()
+		idx = players.findIndex(n=>n.toLowerCase() === lower)
+	}
+	preferredIndex = (idx >=0 && idx < players.length) ? idx : -1
+	if(preferToggle){ preferToggle.checked = preferredIndex !== -1 }
+	renderPreferredOptions()
+}
+window.clearPreferredPlayer = function clearPreferredPlayer(){
+	preferredIndex = -1
+	if(preferToggle){ preferToggle.checked = false }
+	renderPreferredOptions()
+}
 
 	bottle.style.transform = 'rotate(0deg)'
 	announceAngle(0)
@@ -311,4 +372,5 @@ window.getTopPlayerByPercentage = getTopPlayerByPercentage
 renderWheel()
 renderRim(24)
 	updateTopPickUI()
+	renderPreferredOptions()
 })()

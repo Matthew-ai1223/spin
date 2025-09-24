@@ -41,6 +41,17 @@
         <ul id="playersList" class="players__list" aria-live="polite"></ul>
       </section>
 
+      <section class="controls" aria-label="Preference">
+        <label>
+          <span>Prefer player</span>
+          <select id="preferredPlayerSelect" aria-label="Preferred player"></select>
+        </label>
+        <label class="toggle">
+          <input type="checkbox" id="preferToggle" />
+          <span>Bias toward preferred</span>
+        </label>
+      </section>
+
       <section class="controls" aria-label="Controls">
         <button id="spinBtn" class="btn btn--primary" aria-label="Spin the bottle (Space/Enter)">Spin</button>
         <label class="toggle">
