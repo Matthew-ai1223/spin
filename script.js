@@ -14,6 +14,8 @@ const wheelTicks = document.getElementById('wheelTicks')
 	const topPickEl = document.getElementById('topPick')
 	const preferToggle = document.getElementById('preferToggle')
 	const preferredPlayerSelect = document.getElementById('preferredPlayerSelect')
+	const preferenceSection = document.getElementById('preferenceSection')
+	const togglePreferenceBtn = document.getElementById('togglePreferenceBtn')
 
 	let isSpinning = false
 	let currentRotation = 0
@@ -321,8 +323,15 @@ function updateTopPickUI(){
 	spinBtn.addEventListener('click', spin)
 	bottle.addEventListener('click', spin)
 	addPlayerBtn?.addEventListener('click', addPlayer)
+	playerInput?.addEventListener('input', updateControls)
 	preferredPlayerSelect?.addEventListener('change', syncPreferredFromSelect)
 	preferToggle?.addEventListener('change', ()=>{/* no-op; state read during spin */})
+	togglePreferenceBtn?.addEventListener('click', ()=>{
+		if(!preferenceSection || !togglePreferenceBtn) return
+		const hidden = preferenceSection.style.display === 'none'
+		preferenceSection.style.display = hidden ? '' : 'none'
+		togglePreferenceBtn.textContent = hidden ? 'Hide Prefer' : 'Show Prefer'
+	})
 	playerInput?.addEventListener('keydown', (e)=>{
 		if(e.key === 'Enter'){
 			e.preventDefault()
