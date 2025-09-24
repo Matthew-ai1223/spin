@@ -11,6 +11,7 @@ const wheelLabels = document.getElementById('wheelLabels')
 const wheelTicks = document.getElementById('wheelTicks')
 	const winnerEl = document.getElementById('winner')
 	const rim = document.getElementById('rim')
+	const topPickEl = document.getElementById('topPick')
 
 	let isSpinning = false
 	let currentRotation = 0
@@ -18,6 +19,7 @@ const wheelTicks = document.getElementById('wheelTicks')
 	let players = []
 	let lastTickIndex = null
 	const POINTER_OFFSET_DEG = 90 // bottle head points right at 0deg; pointer triangle is at top
+	let selectionCounts = [] // parallel to players
 
 	function ensureAudio(){
 		if(spinAudio) return spinAudio
@@ -190,7 +192,51 @@ function resolveWinner(finalAngle){
 	const pointerAligned = (normalized + POINTER_OFFSET_DEG + sector/2) % 360
 	const index = Math.floor(pointerAligned / sector)
 	const name = players[index]
-	if(winnerEl) winnerEl.textContent = name ? `Selected: ${name}` : ''
+	if(index >= 0 && index < selectionCounts.length){ selectionCounts[index] = (selectionCounts[index]||0) + 1 }
+		if(winnerEl) winnerEl.textContent = name ? `Selected: ${name}` : ''
+		updateTopPickUI()
+}
+
+// Returns the most frequently selected player so far
+// { name: string, count: number, index: number } | null
+function getMostSelectedPlayer(){
+	if(!players.length) return null
+	if(selectionCounts.length < players.length){
+		// ensure alignment length-wise
+		while(selectionCounts.length < players.length) selectionCounts.push(0)
+	}
+	let maxCount = -1
+	let maxIndex = -1
+	for(let i=0;i<players.length;i++){
+		const c = selectionCounts[i]||0
+		if(c > maxCount){ maxCount = c; maxIndex = i }
+	}
+	if(maxIndex === -1) return null
+	return { name: players[maxIndex], count: maxCount, index: maxIndex }
+}
+
+// Returns the player with the highest selection percentage.
+// { name: string, percent: number, count: number, total: number } | null
+function getTopPlayerByPercentage(){
+	if(!players.length) return null
+	const total = selectionCounts.reduce((a,b)=>a+(b||0), 0)
+	if(total === 0) return null
+	let maxCount = -1
+	let maxIndex = -1
+	for(let i=0;i<players.length;i++){
+		const c = selectionCounts[i]||0
+		if(c > maxCount){ maxCount = c; maxIndex = i }
+	}
+	if(maxIndex === -1) return null
+	const percent = (maxCount/total)*100
+	return { name: players[maxIndex], percent, count: maxCount, total }
+}
+
+function updateTopPickUI(){
+	if(!topPickEl) return
+	const top = getTopPlayerByPercentage()
+	if(!top){ topPickEl.textContent = '' ; return }
+	topPickEl.textContent = `${top.name} — ${top.percent.toFixed(0)}% (${top.count}/${top.total})`
 }
 
 	function updateControls(){
@@ -211,6 +257,7 @@ function resolveWinner(finalAngle){
 		})
 	updateControls()
 	renderWheel()
+	updateTopPickUI()
 	}
 
 	function addPlayer(){
@@ -218,6 +265,7 @@ function resolveWinner(finalAngle){
 		if(!name) return
 		if(players.length >= 10) return
 		players.push(name)
+		selectionCounts.push(0)
 		playerInput.value = ''
 	renderPlayers()
 		playerInput.focus()
@@ -225,6 +273,7 @@ function resolveWinner(finalAngle){
 
 	function removePlayer(index){
 		players.splice(index, 1)
+		selectionCounts.splice(index, 1)
 	renderPlayers()
 	}
 
@@ -252,9 +301,14 @@ function resolveWinner(finalAngle){
 		}
 	})
 
+// Expose helper to window for easy access
+window.getMostSelectedPlayer = getMostSelectedPlayer
+window.getTopPlayerByPercentage = getTopPlayerByPercentage
+
 	bottle.style.transform = 'rotate(0deg)'
 	announceAngle(0)
 	updateControls()
 renderWheel()
 renderRim(24)
+	updateTopPickUI()
 })()
